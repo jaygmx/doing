@@ -1,0 +1,35 @@
+
+name: Monthly Upstream Sync
+
+on:
+  schedule:
+    - cron: "0 13 1 * *"
+    - cron: "0 14 1 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check scheduled time
+        id: time
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]] ||
+             [[ "$(TZ=America/New_York date +%H)" == "09" ]]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Sync upstream master
+        if: steps.time.outputs.run == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh repo sync "$GH_REPO" --branch master
